@@ -14,7 +14,7 @@ namespace ExperimentPortalen_API.Controllers
         MySqlConnection connection = new MySqlConnection("server=localhost;uid=root;pwd=;database=experiment_portalen");
 
         [HttpPost]
-        public ActionResult CreateExperiment(Experiment experiment)
+        public ActionResult CreateExperiment(Experiment experiment) //CREATE EXPERIMENT || EJ FÄRDIG - KRÄVER: LÄGG TILL BILDER, LÄGG TILL CATEGORIER
         {
             try
             {
@@ -50,8 +50,54 @@ namespace ExperimentPortalen_API.Controllers
             }
         }
 
+        [HttpPost]
+        public ActionResult ReportExperiment(int userId, int exptId)
+        {
+            try
+            {
+                connection.Open();
+
+                MySqlCommand command = connection.CreateCommand();
+                command.Prepare();
+                command.CommandText = "INSERT INTO reports (reports.userId, reports.exptId) VALUES(@userId, @exptId)";
+                command.Parameters.AddWithValue("@userId", userId);
+                command.Parameters.AddWithValue("@exptId", exptId);
+
+                int rows = command.ExecuteNonQuery();
+
+                connection.Close();
+                return StatusCode(201, $"Lyckades rapportera inlägg med id:{exptId}");
+            }
+            catch(Exception exception) 
+            {
+                connection.Close();
+                return StatusCode(500, exception.Message);
+            }
+        }
+
+        [HttpPut]
+        public ActionResult EditExperiment(Experiment experiment) //EJ FÄRDIG - BEHÖVER: ÄNDRA BILDER, ÄNDRA KATEGORIER
+        {
+            try
+            {
+                connection.Open();
+
+                MySqlCommand command = connection.CreateCommand();
+                command.Prepare();
+                command.CommandText = "";
+
+                connection.Close();
+                return StatusCode(200, "Lyckades redigera inlägg!");
+            }
+            catch(Exception exception)
+            {
+                connection.Close();
+                return StatusCode(500, exception.Message);
+            }
+        }
+
         [HttpGet]
-        public ActionResult<List<Experiment>> ViewAllExpts()
+        public ActionResult<List<Experiment>> ViewAllExpts() //GETS ALL EXPERIMENTS
         {
             List <Experiment> experimentsList = new List <Experiment>();
             try
@@ -254,7 +300,7 @@ namespace ExperimentPortalen_API.Controllers
             return likes;
         }
 
-        [HttpGet("{experimentId}")]
+        [HttpGet("{experimentId}")] //GET SINGLE EXPERIMENT
         public ActionResult GetSingleExperiment(int experimentId)
         {
             try
@@ -295,6 +341,27 @@ namespace ExperimentPortalen_API.Controllers
 
             }
             catch (Exception exception)
+            {
+                connection.Close();
+                return StatusCode(500, exception.Message);
+            }
+        }
+
+        [HttpDelete("{exptId}")]
+        public ActionResult DeleteExperiment(int exptId) //Kolla ifall användare är admin eller har samma userId som experimentet
+        {
+            try
+            {
+                connection.Open();
+                MySqlCommand command = connection.CreateCommand();
+                command.CommandText = "DELETE FROM experiments WHERE experiments.id = @exptId";
+                command.Parameters.AddWithValue("@id", exptId);
+                command.ExecuteNonQuery();
+
+                connection.Close();
+                return StatusCode(200, "Lyckades ta bort experiment!");
+            }
+            catch(Exception exception)
             {
                 connection.Close();
                 return StatusCode(500, exception.Message);

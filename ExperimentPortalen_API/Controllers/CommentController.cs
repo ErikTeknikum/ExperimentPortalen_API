@@ -10,12 +10,12 @@ namespace ExperimentPortalen_API.Controllers
         MySqlConnection connection = new MySqlConnection("server=localhost;uid=root;pwd=;database=experiment_portalen");
 
         [HttpPost]
-        public ActionResult createComment(Comment comment)
+        public ActionResult createComment(Comment comment) //FUNGERAR EJ || CONNECTION POPERTY HAS NOT BEEN SET
         {            
             try
             {
                 connection.Open();
-                string userHeader = Request.Headers[""];
+                //string userHeader = Request.Headers[""];
                 //Lägg till 403 Forbidden statuskod
 
                 MySqlCommand command = new MySqlCommand();
@@ -30,13 +30,39 @@ namespace ExperimentPortalen_API.Controllers
                     return StatusCode(403, "Kommentar saknar innehåll");
                 }
 
-                command.ExecuteNonQuery();
+                int rows = command.ExecuteNonQuery();
 
+                connection.Close();
                 return StatusCode(201, $"Lyckades skapa kommentar på inlägg {comment.exptId}, med innehållet {comment.content}");
             }
             catch(Exception exception)
             {
+                connection.Close();
                 return StatusCode(500, $"Lyckades inte skapa kommentar på grund av serverfel {exception.Message}");
+            }
+        }
+
+        [HttpDelete]
+        public ActionResult deleteComment(int commentId) //FUNGERAR EJ || CONNECTION POPERTY HAS NOT BEEN SET
+        {
+            try
+            {
+                connection.Open();
+                string userHeader = Request.Headers[""];
+
+                MySqlCommand command = new MySqlCommand();
+                command.Prepare();
+                command.CommandText = "DELETE FROM comments WHERE comments.id = @commentId";
+                command.Parameters.AddWithValue("@commentId", commentId);
+                int rows = command.ExecuteNonQuery();
+
+                connection.Close();
+                return StatusCode(200, "Lyckades ta bort kommentar!");
+            }
+            catch(Exception exception)
+            {
+                connection.Close();
+                return StatusCode(500, exception.Message);
             }
         }
     }
