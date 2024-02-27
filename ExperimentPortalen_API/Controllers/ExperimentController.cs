@@ -13,8 +13,8 @@ namespace ExperimentPortalen_API.Controllers
     {
         MySqlConnection connection = new MySqlConnection("server=localhost;uid=root;pwd=;database=experiment_portalen");
 
-        [HttpPost]
-        public ActionResult CreateExperiment(Experiment experiment) //CREATE EXPERIMENT || EJ FÄRDIG - KRÄVER: LÄGG TILL BILDER, LÄGG TILL CATEGORIER
+        [HttpPost("Experiment")]
+        public ActionResult CreateExperiment(Experiment experiment) //FÄRDIG
         {
             try
             {
@@ -40,6 +40,12 @@ namespace ExperimentPortalen_API.Controllers
                 int rows = command.ExecuteNonQuery();
 
                 connection.Close();
+
+
+                PostImageUrls(experiment);
+                PostCategories(experiment);
+
+
                 return StatusCode(201, $"Lyckades ladda upp inlägg med titel: {experiment.title}");
 
             }
@@ -50,7 +56,87 @@ namespace ExperimentPortalen_API.Controllers
             }
         }
 
-        [HttpPost]
+        [HttpPost("Images")]
+        public ActionResult<List<ImageURL>> PostImageUrls(Experiment experiment)
+        {
+
+            List<ImageURL> images = new List<ImageURL>();
+            foreach(ImageURL image in experiment.imageURLs)
+            {
+                images.Add(image);
+
+                try
+                {
+                    connection.Open();
+                    MySqlCommand command = connection.CreateCommand();
+                    command.Prepare();
+
+                    command.CommandText = "INSERT INTO imageurls (imageurls.exptId, imageurls.url) SELECT MAX(experiments.id), @url FROM experiments";
+                    command.Parameters.AddWithValue("@url",  image.url);
+
+                    int rows = command.ExecuteNonQuery();
+
+                }
+                catch (Exception exception)
+                {
+                    connection.Close();
+                    return StatusCode(500, exception.Message);
+                }
+            }
+            if(images.Count == 0)
+            {
+                Console.WriteLine("INGEN BILD HITTADES!! GRR");
+                return StatusCode(204, "No images found");
+            }
+            else
+            {
+                connection.Close();
+                return StatusCode(201, "Lyckades lägga till bild(er)");
+            }
+            
+        }
+
+        [HttpPost("Categories")]
+        public ActionResult<List<Category>> PostCategories(Experiment experiment)
+        {
+            List<Category> categories = new List<Category>();
+
+            foreach(Category category in experiment.categories)
+            {
+                categories.Add(category);
+
+                try
+                {
+                    connection.Open();
+                    MySqlCommand command = connection.CreateCommand();
+                    command.Prepare();
+                    command.CommandText = "INSERT INTO categories (categories.exptId, categories.category) SELECT MAX(experiments.id), @category FROM experiments";
+                    command.Parameters.AddWithValue("@category", category.category);
+
+
+                    int rows = command.ExecuteNonQuery();
+                    connection.Close();
+                    return StatusCode(201, "Lyckades lägga till categori");
+                }
+                catch (Exception exception)
+                {
+                    connection.Close();
+                    return StatusCode(500, exception.Message);
+                }
+            }
+            if(categories.Count == 0)
+            {
+                Console.WriteLine("INGEN KATEGORI!");
+                return StatusCode(204, "No categories found");
+            }
+            else
+            {
+                connection.Close();
+                return StatusCode(201, "Lyckades lägga till categori(er)");
+            }
+        }
+
+        [HttpPost("Report")]
         public ActionResult ReportExperiment(int userId, int exptId)
         {
             try
@@ -75,21 +161,44 @@ namespace ExperimentPortalen_API.Controllers
             }
         }
 
-        [HttpPut]
+        [HttpPut("Experiment")]
         public ActionResult EditExperiment(Experiment experiment) //EJ FÄRDIG - BEHÖVER: ÄNDRA BILDER, ÄNDRA KATEGORIER
         {
             try
             {
                 connection.Open();
+                string userHeader = Request.Headers[""];
+                //Lägg till 403 Forbidden statuskod
 
                 MySqlCommand command = connection.CreateCommand();
                 command.Prepare();
-                command.CommandText = "";
+                command.CommandText = "UPDATE `experiments` (`userId`, `title`, `desc`, `materials`, `instructions`) VALUES(@userId, @title, @desc, @materials, @instructions) WHERE experiments.id = @exptId";
+                command.Parameters.AddWithValue("@exptId", experiment.id);
+                command.Parameters.AddWithValue("@userId", experiment.userId);
+                command.Parameters.AddWithValue("@title", experiment.title);
+                command.Parameters.AddWithValue("@desc", experiment.desc);
+                command.Parameters.AddWithValue("@materials", experiment.materials);
+                command.Parameters.AddWithValue("@instructions", experiment.instructions);
+
+                if (experiment.title == string.Empty || experiment.desc == string.Empty || experiment.materials == string.Empty)
+                {
+                    connection.Close();
+                    return StatusCode(204, "Kunde inte ladda upp inlägg, inlägg saknar viktig information");
+                }
+
+                int rows = command.ExecuteNonQuery();
 
                 connection.Close();
-                return StatusCode(200, "Lyckades redigera inlägg!");
+
+
+                PostImageUrls(experiment); //LÄGG TILL PutImageUrls
+                PostCategories(experiment); //Lägg TILL PutImageUrls
+
+
+                return StatusCode(201, $"Lyckades ladda upp inlägg med titel: {experiment.title}");
+
             }
-            catch(Exception exception)
+            catch (Exception exception)
             {
                 connection.Close();
                 return StatusCode(500, exception.Message);

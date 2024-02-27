@@ -10,7 +10,7 @@ namespace ExperimentPortalen_API.Controllers
         MySqlConnection connection = new MySqlConnection("server=localhost;uid=root;pwd=;database=experiment_portalen");
 
         [HttpPost]
-        public ActionResult createComment(Comment comment) //FUNGERAR EJ || CONNECTION POPERTY HAS NOT BEEN SET
+        public ActionResult createComment(Comment comment) //FUNGERAR
         {            
             try
             {
@@ -18,14 +18,14 @@ namespace ExperimentPortalen_API.Controllers
                 //string userHeader = Request.Headers[""];
                 //Lägg till 403 Forbidden statuskod
 
-                MySqlCommand command = new MySqlCommand();
+                MySqlCommand command = connection.CreateCommand();
                 command.Prepare();
                 command.CommandText = "INSERT INTO comments (comments.userId, comments.exptId, comments.content) VALUES(@userId, @exptId, @content)";
                 command.Parameters.AddWithValue("@userId", comment.userId);
                 command.Parameters.AddWithValue("@exptId", comment.exptId);
                 command.Parameters.AddWithValue("@content", comment.content);
 
-                if (comment.content.Length > 1)
+                if (comment.content.Length < 1)
                 {
                     return StatusCode(403, "Kommentar saknar innehåll");
                 }
@@ -43,17 +43,39 @@ namespace ExperimentPortalen_API.Controllers
         }
 
         [HttpDelete]
-        public ActionResult deleteComment(int commentId) //FUNGERAR EJ || CONNECTION POPERTY HAS NOT BEEN SET
+        public ActionResult deleteComment(int commentId) //FUNGERAR, KOLLAR IFALL DEN FINNS ELLER EJ
         {
+            bool rowExists = false;
+
             try
             {
                 connection.Open();
                 string userHeader = Request.Headers[""];
 
-                MySqlCommand command = new MySqlCommand();
+                MySqlCommand command = connection.CreateCommand();
                 command.Prepare();
-                command.CommandText = "DELETE FROM comments WHERE comments.id = @commentId";
-                command.Parameters.AddWithValue("@commentId", commentId);
+
+                command.CommandText = "SELECT EXISTS(SELECT * FROM comments WHERE comments.id = @commentId1) AS bool;";
+                command.Parameters.AddWithValue("@commentId1", commentId);
+
+                MySqlDataReader data = command.ExecuteReader();
+                data.Read();
+
+                if(data.GetInt32("bool") == 1)
+                {
+                    data.Close();
+                    rowExists = true;
+                    Console.WriteLine("Rad finns i databas!");
+                    
+                }
+                else
+                {
+                    data.Close();
+                    return StatusCode(404, "Kommentar finns inte!");
+                }
+
+                command.CommandText = "DELETE FROM comments WHERE comments.id = @commentId2";
+                command.Parameters.AddWithValue("@commentId2", commentId);
                 int rows = command.ExecuteNonQuery();
 
                 connection.Close();
