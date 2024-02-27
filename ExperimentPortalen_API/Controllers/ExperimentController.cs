@@ -8,7 +8,6 @@ namespace ExperimentPortalen_API.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-
     public class ExperimentController : Controller
     {
         MySqlConnection connection = new MySqlConnection("server=localhost;uid=root;pwd=;database=experiment_portalen");
@@ -41,13 +40,10 @@ namespace ExperimentPortalen_API.Controllers
 
                 connection.Close();
 
-
                 PostImageUrls(experiment);
                 PostCategories(experiment);
 
-
                 return StatusCode(201, $"Lyckades ladda upp inlägg med titel: {experiment.title}");
-
             }
             catch (Exception exception)
             {
@@ -55,6 +51,7 @@ namespace ExperimentPortalen_API.Controllers
                 return StatusCode(500, exception.Message);
             }
         }
+        //Creates experiment posts, calls other actions to add imageurls and categories to post in database
 
         [HttpPost("Images")]
         public ActionResult<List<ImageURL>> PostImageUrls(Experiment experiment)
@@ -92,9 +89,9 @@ namespace ExperimentPortalen_API.Controllers
             {
                 connection.Close();
                 return StatusCode(201, "Lyckades lägga till bild(er)");
-            }
-            
+            }            
         }
+        //Only used in CreateExperiment and EditExperiment Actions to add/change (respectively) imageurls for experiments in database
 
         [HttpPost("Categories")]
         public ActionResult<List<Category>> PostCategories(Experiment experiment)
@@ -135,6 +132,7 @@ namespace ExperimentPortalen_API.Controllers
                 return StatusCode(201, "Lyckades lägga till categori(er)");
             }
         }
+        //Only used in CreateExperiment and EditExperiment Actions to add/change (respectively) categories for experiments in database
 
         [HttpPost("Report")]
         public ActionResult ReportExperiment(int userId, int exptId)
@@ -160,6 +158,7 @@ namespace ExperimentPortalen_API.Controllers
                 return StatusCode(500, exception.Message);
             }
         }
+        //Creates a report to an experiment in the database
 
         [HttpPut("Experiment")]
         public ActionResult EditExperiment(Experiment experiment) //EJ FÄRDIG - BEHÖVER: ÄNDRA BILDER, ÄNDRA KATEGORIER
@@ -191,8 +190,8 @@ namespace ExperimentPortalen_API.Controllers
                 connection.Close();
 
 
-                PostImageUrls(experiment); //LÄGG TILL PutImageUrls
-                PostCategories(experiment); //Lägg TILL PutImageUrls
+                PostImageUrls(experiment); //LÄGG TILL EditImageUrls
+                PostCategories(experiment); //Lägg TILL EditCategories
 
 
                 return StatusCode(201, $"Lyckades ladda upp inlägg med titel: {experiment.title}");
@@ -204,6 +203,7 @@ namespace ExperimentPortalen_API.Controllers
                 return StatusCode(500, exception.Message);
             }
         }
+        //Edits and existing experiment, calls EditImageUrls and EditCategories to change connected urls and categories in database
 
         [HttpGet]
         public ActionResult<List<Experiment>> ViewAllExpts() //GETS ALL EXPERIMENTS
@@ -256,10 +256,9 @@ namespace ExperimentPortalen_API.Controllers
                return StatusCode(204, "Inga inlägg i databasen");
             }
             connection.Close();
-            return StatusCode(200, experimentsList);
-
-           
+            return StatusCode(200, experimentsList);           
         }
+        //Gets all experiments in database, along with comments, likes, categories and imageurls
 
         private string GetUserName(UInt32 userId)
         {
@@ -282,6 +281,7 @@ namespace ExperimentPortalen_API.Controllers
             }
             return username;
         }
+        //Used in GetComments and ViewAllExpts Actions in order to get usernames from userids
 
         private List<Comment> getComments(UInt32 experimentId)
         {
@@ -318,9 +318,9 @@ namespace ExperimentPortalen_API.Controllers
             {
                 Console.WriteLine($"Ett serverfel inträffade medans kommentarer hämtades: {exception.Message}");
                 return commentList;
-            }
-          
+            }          
         }
+        //Used in GetAllExpts Action in order to get all comments connected to posts
 
         private List<Category> getCategories(UInt32 experimentId)
         {
@@ -351,6 +351,7 @@ namespace ExperimentPortalen_API.Controllers
                 return categoryList; 
             }
         }
+        //Used in GetAllExpts Action in order to get categories connected to posts
 
         private List<ImageURL> getImages(UInt32 experimentId)
         {
@@ -381,6 +382,7 @@ namespace ExperimentPortalen_API.Controllers
                 return urlList;
             }
         }
+        //Used in GetAllExpts Action in order to get image urls connected to posts
 
         private uint Likes(UInt32 experimentId)
         {
@@ -408,6 +410,7 @@ namespace ExperimentPortalen_API.Controllers
 
             return likes;
         }
+        //Used in GetAllExpts Action in order to get the number of likes connected to posts
 
         [HttpGet("{experimentId}")] //GET SINGLE EXPERIMENT
         public ActionResult GetSingleExperiment(int experimentId)
@@ -455,6 +458,7 @@ namespace ExperimentPortalen_API.Controllers
                 return StatusCode(500, exception.Message);
             }
         }
+        //Used to get a single post in database from exptId
 
         [HttpDelete("{exptId}")]
         public ActionResult DeleteExperiment(int exptId) //Kolla ifall användare är admin eller har samma userId som experimentet
@@ -476,6 +480,7 @@ namespace ExperimentPortalen_API.Controllers
                 return StatusCode(500, exception.Message);
             }
         }
+        //Used to delete a single post in database from exptId
     }
 }
 

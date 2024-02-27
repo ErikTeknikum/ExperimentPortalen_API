@@ -32,6 +32,7 @@ namespace ExperimentPortalen_API.Controllers
                 return StatusCode(500, exception.Message);
             }
         }
+        //Adds a row in database to store liked post, single user can't like post more than once due to primary keys in database
 
         [HttpDelete]
         public ActionResult deleteLike(int exptId, int userId) //FUNGERAR
@@ -56,5 +57,6 @@ namespace ExperimentPortalen_API.Controllers
                 return StatusCode(500, exception.Message);
             }
         }
+        //Deletes like row in database
     }
 }

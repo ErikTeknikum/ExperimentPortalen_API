@@ -1,6 +1,7 @@
 ﻿namespace ExperimentPortalen_API
 {
-    //Builder pattern for user
+    //Users are created using builderpattern to fullfill project requirements
+
     internal class UserBuilder
     {
         private uint id;
@@ -37,6 +38,11 @@
         {
             this.role = role;
             return this;
+        }
+
+        public User Build()
+        {
+            return new User(id, name, email, password, role);
         }
     }
 }

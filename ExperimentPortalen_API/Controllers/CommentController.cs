@@ -41,6 +41,7 @@ namespace ExperimentPortalen_API.Controllers
                 return StatusCode(500, $"Lyckades inte skapa kommentar på grund av serverfel {exception.Message}");
             }
         }
+        //Creates a table row connected to a experiment post
 
         [HttpDelete]
         public ActionResult deleteComment(int commentId) //FUNGERAR, KOLLAR IFALL DEN FINNS ELLER EJ
@@ -56,7 +57,7 @@ namespace ExperimentPortalen_API.Controllers
                 command.Prepare();
 
                 command.CommandText = "SELECT EXISTS(SELECT * FROM comments WHERE comments.id = @commentId1) AS bool;";
-                command.Parameters.AddWithValue("@commentId1", commentId);
+                command.Parameters.AddWithValue("@commentId1", commentId); //CHANGE NAME ON COMMENT ID?
 
                 MySqlDataReader data = command.ExecuteReader();
                 data.Read();
@@ -75,7 +76,7 @@ namespace ExperimentPortalen_API.Controllers
                 }
 
                 command.CommandText = "DELETE FROM comments WHERE comments.id = @commentId2";
-                command.Parameters.AddWithValue("@commentId2", commentId);
+                command.Parameters.AddWithValue("@commentId2", commentId); //CHANGE NAME ON COMMENT ID?
                 int rows = command.ExecuteNonQuery();
 
                 connection.Close();
@@ -87,5 +88,6 @@ namespace ExperimentPortalen_API.Controllers
                 return StatusCode(500, exception.Message);
             }
         }
+        //Deletes a comment row in database by id, checks beforehand if a comment with given id exists and throws 404 if not.
     }
 }
