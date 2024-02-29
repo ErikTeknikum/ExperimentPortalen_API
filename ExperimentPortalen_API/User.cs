@@ -1,6 +1,6 @@
 ﻿namespace ExperimentPortalen_API
 {
-    internal class User
+    public class User
     {
         //Users are created using builderpattern
 

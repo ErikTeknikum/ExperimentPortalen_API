@@ -10,6 +10,7 @@
         public string instructions { get; set; } = string.Empty;
         public string materials { get; set; } = string.Empty;
         public uint likeCount { get; set; }
+        public uint reportCount {  get; set; }
         public List<Category> categories { get; set; } = new List<Category>();
         public List<ImageURL> imageURLs { get; set; } = new List<ImageURL>();
         public List<Comment> comments { get; set; } = new List<Comment>();

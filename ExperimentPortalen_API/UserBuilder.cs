@@ -2,7 +2,7 @@
 {
     //Users are created using builderpattern to fullfill project requirements
 
-    internal class UserBuilder
+    public class UserBuilder
     {
         private uint id;
         private string name;
