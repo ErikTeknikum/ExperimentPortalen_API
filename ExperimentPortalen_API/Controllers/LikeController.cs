@@ -10,7 +10,7 @@ namespace ExperimentPortalen_API.Controllers
         MySqlConnection connection = new MySqlConnection("server=localhost;uid=root;pwd=;database=experiment_portalen");
 
         [HttpPost]
-        public ActionResult createLike(int exptId, int userId) //FUNGERAR
+        public ActionResult CreateLike(int exptId, int userId) //FUNGERAR
         {
             
             try
@@ -35,7 +35,7 @@ namespace ExperimentPortalen_API.Controllers
         //Adds a row in database to store liked post, single user can't like post more than once due to primary keys in database
 
         [HttpDelete]
-        public ActionResult deleteLike(int exptId, int userId) //FUNGERAR
+        public ActionResult DeleteLike(int exptId, int userId) //FUNGERAR
         {
             
             try

@@ -2,9 +2,9 @@
 {
     public class Experiment
     {
-        public uint id { get; set; }
+        public uint id { get; set; } //PascalCase
         public uint userId { get; set; }
-        public string name { get; set; }
+        public string name { get; set; } = string.Empty;
         public string title { get; set; } = string.Empty;
         public string desc { get; set; } = string.Empty;
         public string instructions { get; set; } = string.Empty;

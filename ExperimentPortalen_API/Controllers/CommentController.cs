@@ -10,7 +10,7 @@ namespace ExperimentPortalen_API.Controllers
         MySqlConnection connection = new MySqlConnection("server=localhost;uid=root;pwd=;database=experiment_portalen");
 
         [HttpPost]
-        public ActionResult createComment(Comment comment) //FUNGERAR
+        public ActionResult CreateComment(Comment comment) //FUNGERAR
         {            
             try
             {
@@ -38,16 +38,14 @@ namespace ExperimentPortalen_API.Controllers
             catch(Exception exception)
             {
                 connection.Close();
-                return StatusCode(500, $"Lyckades inte skapa kommentar på grund av serverfel {exception.Message}");
+                return StatusCode(500, $"Lyckades inte skapa kommentar, meddelande: {exception.Message}");
             }
         }
         //Creates a table row connected to a experiment post
 
         [HttpDelete]
-        public ActionResult deleteComment(int commentId) //FUNGERAR, KOLLAR IFALL DEN FINNS ELLER EJ
+        public ActionResult DeleteComment(int commentId) //FUNGERAR, KOLLAR IFALL DEN FINNS ELLER EJ
         {
-            bool rowExists = false;
-
             try
             {
                 connection.Open();
@@ -65,14 +63,13 @@ namespace ExperimentPortalen_API.Controllers
                 if(data.GetInt32("bool") == 1)
                 {
                     data.Close();
-                    rowExists = true;
                     Console.WriteLine("Rad finns i databas!");
                     
                 }
                 else
                 {
                     data.Close();
-                    return StatusCode(404, "Kommentar finns inte!");
+                    return StatusCode(404, "Kommentar finns inte i databas!");
                 }
 
                 command.CommandText = "DELETE FROM comments WHERE comments.id = @commentId2";

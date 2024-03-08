@@ -13,7 +13,7 @@ namespace ExperimentPortalen_API.Controllers
         MySqlConnection connection = new MySqlConnection("server=localhost;uid=root;pwd=;database=experiment_portalen");
 
         [HttpGet]
-        public ActionResult<List<Experiment>> ViewAllExpts() //GETS ALL EXPERIMENTS
+        public ActionResult<List<Experiment>> GetAllExpts() //GETS ALL EXPERIMENTS
         {
             List<Experiment> experimentsList = new List<Experiment>();
             try
@@ -21,14 +21,15 @@ namespace ExperimentPortalen_API.Controllers
                 connection.Open();
                 MySqlCommand command = connection.CreateCommand();
                 command.Prepare();
-                command.CommandText = "SELECT experiments.id, experiments.userId, experiments.title, experiments.desc, experiments.materials, experiments.instructions FROM experiments ORDER BY experiments.id;"; //gets experiments
-
+                command.CommandText = "SELECT experiments.id, experiments.userId, experiments.title, " +
+                    "experiments.desc, experiments.materials, experiments.instructions" +
+                    " FROM experiments ORDER BY experiments.id;"; //gets experiments
 
                 MySqlDataReader experimentData = command.ExecuteReader();
 
                 while (experimentData.Read())
                 {
-                    Experiment experiment = new Experiment();
+                    Experiment experiment = new Experiment(); //Skapa metod för detta?
                     experiment.id = experimentData.GetUInt32("id");
                     experiment.userId = experimentData.GetUInt32("userId");
                     experiment.title = experimentData.GetString("title");
@@ -37,7 +38,6 @@ namespace ExperimentPortalen_API.Controllers
                     experiment.instructions = experimentData.GetString("instructions");
 
                     experimentsList.Add(experiment);
-
                 }
                 experimentData.Close();
             }
@@ -49,20 +49,19 @@ namespace ExperimentPortalen_API.Controllers
 
             foreach (Experiment experiment in experimentsList)
             {
-                experiment.comments = getComments(experiment.id);
-                experiment.categories = getCategories(experiment.id);
-                experiment.imageURLs = getImages(experiment.id);
+                experiment.comments = GetComments(experiment.id);
+                experiment.categories = GetCategories(experiment.id);
+                experiment.imageURLs = GetImages(experiment.id);
                 experiment.likeCount = Likes(experiment.id);
                 experiment.name = GetUserName(experiment.userId);
             }
-
+            
+            connection.Close();
 
             if (experimentsList.Count == 0)
             {
-                connection.Close();
                 return StatusCode(204, "Inga inlägg i databasen");
-            }
-            connection.Close();
+            }            
             return StatusCode(200, experimentsList);
         }
         //Gets all experiments in database, along with comments, likes, categories and imageurls
@@ -76,8 +75,11 @@ namespace ExperimentPortalen_API.Controllers
 
                 MySqlCommand command = connection.CreateCommand();
                 command.Prepare();
-                command.CommandText = "SELECT experiments.id, experiments.userId, experiments.title, experiments.desc, experiments.materials, experiments.instructions FROM experiments WHERE experiments.id = @experimentId;";
+                command.CommandText = "SELECT experiments.id, experiments.userId, experiments.title, " +
+                    "experiments.desc, experiments.materials, experiments.instructions " +
+                    "FROM experiments WHERE experiments.id = @experimentId;";
                 command.Parameters.AddWithValue("@experimentId", exptId);
+
                 MySqlDataReader experimentData = command.ExecuteReader();
 
                 if (experimentData.HasRows == false)
@@ -86,26 +88,25 @@ namespace ExperimentPortalen_API.Controllers
                 }
 
                 Experiment experiment = new Experiment();
-                while (experimentData.Read())
-                {
-                    experiment.id = experimentData.GetUInt32("id");
-                    experiment.userId = experimentData.GetUInt32("userId");
-                    experiment.title = experimentData.GetString("title");
-                    experiment.desc = experimentData.GetString("desc");
-                    experiment.materials = experimentData.GetString("materials");
-                    experiment.instructions = experimentData.GetString("instructions");
-                }
+                experimentData.Read();
+
+                experiment.id = experimentData.GetUInt32("id");
+                experiment.userId = experimentData.GetUInt32("userId");
+                experiment.title = experimentData.GetString("title");
+                experiment.desc = experimentData.GetString("desc");
+                experiment.materials = experimentData.GetString("materials");
+                experiment.instructions = experimentData.GetString("instructions");
+
                 experimentData.Close();
 
-                experiment.comments = getComments(experiment.id);
-                experiment.imageURLs = getImages(experiment.id);
-                experiment.categories = getCategories(experiment.id);
+                experiment.comments = GetComments(experiment.id);
+                experiment.imageURLs = GetImages(experiment.id);
+                experiment.categories = GetCategories(experiment.id);
                 experiment.likeCount = Likes(experiment.id);
-                experiment.name = GetUserName(experiment.id);
+                experiment.name = GetUserName(experiment.userId);
 
                 connection.Close();
                 return StatusCode(200, experiment);
-
             }
             catch (Exception exception)
             {
@@ -116,38 +117,41 @@ namespace ExperimentPortalen_API.Controllers
         //Used to get a single post in database from exptId
 
         [HttpPut]
-        public ActionResult EditExperiment(Experiment experiment) //EJ FÄRDIG - BEHÖVER: ÄNDRA BILDER, ÄNDRA KATEGORIER
+        public ActionResult EditExperiment(Experiment experiment) //Färdig
         {
             try
             {
                 connection.Open();
-                string userHeader = Request.Headers[""];
+                //string userHeader = Request.Headers[""];
                 //Lägg till 403 Forbidden statuskod
 
                 MySqlCommand command = connection.CreateCommand();
                 command.Prepare();
-                command.CommandText = "UPDATE `experiments` SET `title` = @title, `desc` = @desc, `materials` = @materials, `instructions` = @instructions WHERE experiments.id = @exptId";
+                command.CommandText = "UPDATE `experiments` SET `title` = @title, " +
+                    "`desc` = @desc, `materials` = @materials, `instructions` = @instructions " +
+                    "WHERE experiments.id = @exptId";
                 command.Parameters.AddWithValue("@exptId", experiment.id);
                 command.Parameters.AddWithValue("@title", experiment.title);
                 command.Parameters.AddWithValue("@desc", experiment.desc);
                 command.Parameters.AddWithValue("@materials", experiment.materials);
                 command.Parameters.AddWithValue("@instructions", experiment.instructions);
 
+                //Ändra ifsats till funktion
                 if (experiment.title == string.Empty || experiment.desc == string.Empty || experiment.materials == string.Empty)
                 {
                     connection.Close();
                     return StatusCode(204, "Kunde inte ladda upp inlägg, inlägg saknar viktig information");
                 }
 
-                int rows = command.ExecuteNonQuery();
+                int rows = command.ExecuteNonQuery();                
 
-                
-
-                deleteImages(experiment.id);
+                DeleteImages(experiment.id);
                 PostImageUrls(experiment);
+                //deletes current images in database then posts the new/updated images
 
-                deleteCategories(experiment.id);
+                DeleteCategories(experiment.id);
                 PostCategories(experiment);
+                //deletes current categories in database then posts the new/updated categories
 
                 connection.Close();
                 return StatusCode(201, $"Lyckades ladda upp inlägg med titel: {experiment.title}");
@@ -162,7 +166,7 @@ namespace ExperimentPortalen_API.Controllers
         //Edits and existing experiment, calls EditImageUrls and EditCategories to change connected urls and categories in database
 
         [HttpDelete("images")]
-        public ActionResult deleteImages(uint exptId)
+        public ActionResult DeleteImages(uint exptId)
         {
             try
             {
@@ -181,7 +185,7 @@ namespace ExperimentPortalen_API.Controllers
                 if(imageCount < 1)
                 {
                     connection.Close();
-                    return StatusCode(404, $"Finns inga bilder i databas kopplat till experimentid: {exptId}");
+                    return StatusCode(204, $"Finns inga bilder i databas kopplat till experimentid: {exptId}");
                 }
                 else
                 {
@@ -200,7 +204,7 @@ namespace ExperimentPortalen_API.Controllers
         }
 
         [HttpDelete("Categories")]
-        public ActionResult deleteCategories(uint exptId)
+        public ActionResult DeleteCategories(uint exptId)
         {
             try
             {
@@ -209,8 +213,10 @@ namespace ExperimentPortalen_API.Controllers
 
                 command.CommandText = "SELECT COUNT(*) FROM categories WHERE exptId = @exptId";
                 command.Parameters.AddWithValue("@exptId", exptId);
+
                 MySqlDataReader reader = command.ExecuteReader();
                 reader.Read();
+
                 int categoryCount = reader.GetInt32("count");
                 if(categoryCount < 1)
                 {
@@ -222,6 +228,7 @@ namespace ExperimentPortalen_API.Controllers
                     command.CommandText = "DELETE FROM categories WHERE exptId = @exptId";
                     command.Parameters.AddWithValue("@exptId", exptId);
                     int rows = command.ExecuteNonQuery();
+
                     connection.Close();
                     return StatusCode(200, "Lyckades ta bort gamla bilder");
                 }
@@ -239,12 +246,13 @@ namespace ExperimentPortalen_API.Controllers
             try
             {
                 connection.Open();
-                string userHeader = Request.Headers[""];
+                //string userHeader = Request.Headers[""];
                 //Lägg till 403 Forbidden statuskod
 
                 MySqlCommand command = connection.CreateCommand();
                 command.Prepare();
-                command.CommandText = "INSERT INTO `experiments` (`userId`, `title`, `desc`, `materials`, `instructions`) VALUES(@userId, @title, @desc, @materials, @instructions)";
+                command.CommandText = "INSERT INTO `experiments` (`userId`, `title`, `desc`, `materials`, `instructions`) " +
+                    "VALUES(@userId, @title, @desc, @materials, @instructions)";
                 command.Parameters.AddWithValue("@userId", experiment.userId);
                 command.Parameters.AddWithValue("@title", experiment.title);
                 command.Parameters.AddWithValue("@desc", experiment.desc);
@@ -262,7 +270,7 @@ namespace ExperimentPortalen_API.Controllers
                 connection.Close();
 
                 PostImageUrls(experiment);
-                PostCategories(experiment);
+                PostCategories(experiment);                
 
                 return StatusCode(201, $"Lyckades ladda upp inlägg med titel: {experiment.title}");
             }
@@ -274,10 +282,10 @@ namespace ExperimentPortalen_API.Controllers
         }
         //Creates experiment posts, calls other actions to add imageurls and categories to post in database
 
-        [HttpPost("Images")] //Change to public list
+        //Change to private list?
+        [HttpPost("PostImages")]
         public ActionResult<List<ImageURL>> PostImageUrls(Experiment experiment)
         {
-
             List<ImageURL> images = new List<ImageURL>();
             foreach(ImageURL image in experiment.imageURLs)
             {
@@ -289,11 +297,11 @@ namespace ExperimentPortalen_API.Controllers
                     MySqlCommand command = connection.CreateCommand();
                     command.Prepare();
 
-                    command.CommandText = "INSERT INTO imageurls (imageurls.exptId, imageurls.url) SELECT MAX(experiments.id), @url FROM experiments";
+                    command.CommandText = "INSERT INTO imageurls (imageurls.exptId, imageurls.url) " +
+                        "SELECT MAX(experiments.id), @url FROM experiments";
                     command.Parameters.AddWithValue("@url",  image.url);
 
                     int rows = command.ExecuteNonQuery();
-
                 }
                 catch (Exception exception)
                 {
@@ -314,7 +322,8 @@ namespace ExperimentPortalen_API.Controllers
         }
         //Only used in CreateExperiment and EditExperiment Actions to add/change (respectively) imageurls for experiments in database
 
-        [HttpPost("Categories")] //change to public list, not action
+        //change to private list, not action
+        [HttpPost("HEHEHEHEEJAOIHFAFHAHFAÖOIFYAOYFHA")]
         public ActionResult<List<Category>> PostCategories(Experiment experiment)
         {
             List<Category> categories = new List<Category>();
@@ -328,11 +337,14 @@ namespace ExperimentPortalen_API.Controllers
                     connection.Open();
                     MySqlCommand command = connection.CreateCommand();
                     command.Prepare();
-                    command.CommandText = "INSERT INTO categories (categories.exptId, categories.category) SELECT MAX(experiments.id), @category FROM experiments";
+                    command.CommandText = "INSERT INTO categories (categories.exptId, categories.category) " +
+                        "SELECT MAX(experiments.id), @category FROM experiments";
                     command.Parameters.AddWithValue("@category", category.category);
 
-
                     int rows = command.ExecuteNonQuery();
+
+                    //Endast 1 return, med variabler istället för hårdkodat.
+
                     connection.Close();
                     return StatusCode(201, "Lyckades lägga till categori");
                 }
@@ -344,7 +356,7 @@ namespace ExperimentPortalen_API.Controllers
             }
             if(categories.Count == 0)
             {
-                Console.WriteLine("INGEN KATEGORI!");
+                connection.Close();
                 return StatusCode(204, "No categories found");
             }
             else
@@ -390,7 +402,8 @@ namespace ExperimentPortalen_API.Controllers
                 connection.Open();
                 MySqlCommand command = connection.CreateCommand();
                 command.Prepare();
-                command.CommandText = "SELECT experiments.*, COUNT(reports.exptId) AS reportCount FROM experiments JOIN reports ON experiments.id = reports.exptId GROUP BY experiments.id ORDER BY reportCount DESC;";
+                command.CommandText = "SELECT experiments.*, COUNT(reports.exptId) AS reportCount FROM experiments " +
+                    "JOIN reports ON experiments.id = reports.exptId GROUP BY experiments.id ORDER BY reportCount DESC;";
 
                 MySqlDataReader reader = command.ExecuteReader();
 
@@ -444,14 +457,15 @@ namespace ExperimentPortalen_API.Controllers
         }
         //Used in GetComments and ViewAllExpts Actions in order to get usernames from userids
 
-        private List<Comment> getComments(UInt32 experimentId)
+        private List<Comment> GetComments(UInt32 experimentId)
         {
             List<Comment> commentList = new List<Comment>();
             MySqlCommand commentCommand = connection.CreateCommand();
             try
             {
                 commentCommand.Prepare();
-                commentCommand.CommandText = "SELECT comments.id, comments.userId, comments.exptId, comments.content FROM comments INNER JOIN experiments ON comments.exptId = experiments.id WHERE comments.exptId = @exptId;"; //gets comments
+                commentCommand.CommandText = "SELECT comments.id, comments.userId, comments.exptId, comments.content FROM comments " +
+                    "INNER JOIN experiments ON comments.exptId = experiments.id WHERE comments.exptId = @exptId;"; //gets comments
                 commentCommand.Parameters.AddWithValue("@exptId", experimentId);
                 using (MySqlDataReader commentData = commentCommand.ExecuteReader())
                 {
@@ -483,16 +497,17 @@ namespace ExperimentPortalen_API.Controllers
         }
         //Used in GetAllExpts Action in order to get all comments connected to posts
 
-        private List<Category> getCategories(UInt32 experimentId)
+        private List<Category> GetCategories(UInt32 experimentId)
         {
             List<Category> categoryList = new List<Category>();
             MySqlCommand categoryCommand = connection.CreateCommand();
             try
             {
                 categoryCommand.Prepare();
-                categoryCommand.CommandText = "SELECT categories.id, categories.exptId, categories.category FROM categories INNER JOIN experiments ON categories.exptId = experiments.id WHERE categories.exptId = @exptId";
+                categoryCommand.CommandText = "SELECT categories.id, categories.exptId, categories.category FROM categories " +
+                    "INNER JOIN experiments ON categories.exptId = experiments.id WHERE categories.exptId = @exptId";
                 categoryCommand.Parameters.AddWithValue("@exptId", experimentId);
-                using(MySqlDataReader categoryData = categoryCommand.ExecuteReader())
+                using(MySqlDataReader categoryData = categoryCommand.ExecuteReader()) //Okonsekvent kod, ändra
                 {
                     while (categoryData.Read())
                     {
@@ -503,25 +518,25 @@ namespace ExperimentPortalen_API.Controllers
                         categoryList.Add(category);
                     }
                     categoryData.Close();
-                }
-                return categoryList;
+                }                
             }
             catch(Exception exception)
             {
-                Console.WriteLine($"Ett serverfel inträffade medans categorier hämtades: {exception.Message}");
-                return categoryList; 
+                Console.WriteLine($"Ett serverfel inträffade medans categorier hämtades: {exception.Message}");                
             }
+            return categoryList;
         }
         //Used in GetAllExpts Action in order to get categories connected to posts
 
-        private List<ImageURL> getImages(UInt32 experimentId)
+        private List<ImageURL> GetImages(UInt32 experimentId)
         {
             List<ImageURL> urlList = new List<ImageURL>();
             MySqlCommand imageCommand = connection.CreateCommand();
             try
             {
                 imageCommand.Prepare();
-                imageCommand.CommandText = "SELECT imageurls.id, imageurls.url, imageurls.exptId FROM imageurls INNER JOIN experiments ON imageurls.exptId = experiments.id WHERE imageurls.exptId = @exptId";
+                imageCommand.CommandText = "SELECT imageurls.id, imageurls.url, imageurls.exptId FROM imageurls " +
+                    "INNER JOIN experiments ON imageurls.exptId = experiments.id WHERE imageurls.exptId = @exptId";
                 imageCommand.Parameters.AddWithValue("@exptId", experimentId);
                 using (MySqlDataReader urlData = imageCommand.ExecuteReader())
                 {
@@ -534,14 +549,13 @@ namespace ExperimentPortalen_API.Controllers
                         urlList.Add(ímageUrl);
                     }
                     urlData.Close();
-                }
-                return urlList;
+                }                
             }
             catch (Exception exception)
             {
-                Console.WriteLine($"Ett serverfel inträffade medans bilder hämtades: {exception.Message}");
-                return urlList;
+                Console.WriteLine($"Ett serverfel inträffade medans bilder hämtades: {exception.Message}");                
             }
+            return urlList;
         }
         //Used in GetAllExpts Action in order to get image urls connected to posts
 
@@ -561,8 +575,7 @@ namespace ExperimentPortalen_API.Controllers
                 likes = likeData.GetUInt32("likeCount");
                 Console.WriteLine("antal gillningar" + likes);
                 
-                likeData.Close();
-                
+                likeData.Close();                
             }
             catch(Exception exception)
             {
