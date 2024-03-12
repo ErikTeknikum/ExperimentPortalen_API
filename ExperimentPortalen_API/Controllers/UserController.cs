@@ -63,6 +63,21 @@ namespace ExperimentPortalen_API.Controllers
         [HttpDelete]
         public ActionResult DeleteUser(int id) //EJ FÄRDIG KOLLA ADMIN ROLL FÖRST, VÄNTA TILLS FRONTEND FUNGERAR
         {
+            string? auth = this.HttpContext.Request.Headers["Authorization"];
+
+            //If user is not logged in returns 403 Forbidden
+            if (auth == null || !UserController.sessionId.ContainsKey(auth))
+            {
+                return StatusCode(403, "0");
+            }
+            User user = (User)UserController.sessionId[auth];
+
+            //If user is not admin role returns 403 Forbidden
+            if (user.role != 3)
+            {
+                return StatusCode(403, "Du har inte behörighet!");
+            }
+
             try
             {
                 connection.Open();
