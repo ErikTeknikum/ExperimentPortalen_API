@@ -5,9 +5,9 @@
     public class UserBuilder
     {
         private uint id;
-        private string name;
-        private string email;
-        private string password;
+        private string name = String.Empty;
+        private string email = String.Empty;
+        private string password = String.Empty;
         private uint role;
 
         public UserBuilder Id(uint id)
