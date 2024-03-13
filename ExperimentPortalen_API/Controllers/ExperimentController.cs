@@ -218,6 +218,8 @@ namespace ExperimentPortalen_API.Controllers
                 reader.Read();
 
                 int categoryCount = reader.GetInt32("count");
+
+                reader.Close();
                 if(categoryCount < 1)
                 {
                     connection.Close();
