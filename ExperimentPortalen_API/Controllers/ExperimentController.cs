@@ -329,14 +329,14 @@ namespace ExperimentPortalen_API.Controllers
         public ActionResult<List<Category>> PostCategories(Experiment experiment)
         {
             List<Category> categories = new List<Category>();
-
-            foreach(Category category in experiment.categories)
+            connection.Open();
+            foreach (Category category in experiment.categories)
             {
                 categories.Add(category);
 
                 try
                 {
-                    connection.Open();
+                    
                     MySqlCommand command = connection.CreateCommand();
                     command.Prepare();
                     command.CommandText = "INSERT INTO categories (categories.exptId, categories.category) " +
@@ -347,8 +347,6 @@ namespace ExperimentPortalen_API.Controllers
 
                     //Endast 1 return, med variabler istället för hårdkodat.
 
-                    connection.Close();
-                    return StatusCode(201, "Lyckades lägga till categori");
                 }
                 catch (Exception exception)
                 {
@@ -449,6 +447,7 @@ namespace ExperimentPortalen_API.Controllers
                 nameReader.Read();
 
                 username = nameReader.GetString("name");
+
                 nameReader.Close();
             }
             catch(Exception exception) 
