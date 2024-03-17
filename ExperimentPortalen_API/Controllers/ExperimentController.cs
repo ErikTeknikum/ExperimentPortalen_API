@@ -173,7 +173,7 @@ namespace ExperimentPortalen_API.Controllers
                 MySqlCommand command = connection.CreateCommand();
                 command.Prepare();
 
-                command.CommandText = "SELECT COUNT(*) AS count FROM imageurl WHERE exptId = @exptId";
+                command.CommandText = "SELECT COUNT(*) AS count FROM imageurls WHERE exptId = @exptId";
                 command.Parameters.AddWithValue("@exptId", exptId);
                 MySqlDataReader reader = command.ExecuteReader();
                 reader.Read();
@@ -184,7 +184,6 @@ namespace ExperimentPortalen_API.Controllers
 
                 if(imageCount < 1)
                 {
-                    connection.Close();
                     return StatusCode(204, $"Finns inga bilder i databas kopplat till experimentid: {exptId}");
                 }
                 else
@@ -211,7 +210,7 @@ namespace ExperimentPortalen_API.Controllers
                 MySqlCommand command = connection.CreateCommand();
                 command.Prepare();
 
-                command.CommandText = "SELECT COUNT(*) FROM categories WHERE exptId = @exptId";
+                command.CommandText = "SELECT COUNT(*) AS 'count' FROM categories WHERE exptId = @exptId";
                 command.Parameters.AddWithValue("@exptId", exptId);
 
                 MySqlDataReader reader = command.ExecuteReader();
@@ -222,7 +221,6 @@ namespace ExperimentPortalen_API.Controllers
                 reader.Close();
                 if(categoryCount < 1)
                 {
-                    connection.Close();
                     return StatusCode(404, $"Kunde inte ta bort kategorier, finns ingen kategori kopplad till experiment id: {exptId}");
                 }
                 else
@@ -269,11 +267,12 @@ namespace ExperimentPortalen_API.Controllers
 
                 int rows = command.ExecuteNonQuery();
 
-                connection.Close();
+
 
                 PostImageUrls(experiment);
-                PostCategories(experiment);                
+                PostCategories(experiment);
 
+                connection.Close();
                 return StatusCode(201, $"Lyckades ladda upp inlägg med titel: {experiment.title}");
             }
             catch (Exception exception)
@@ -295,7 +294,7 @@ namespace ExperimentPortalen_API.Controllers
 
                 try
                 {
-                    connection.Open();
+
                     MySqlCommand command = connection.CreateCommand();
                     command.Prepare();
 
@@ -318,7 +317,6 @@ namespace ExperimentPortalen_API.Controllers
             }
             else
             {
-                connection.Close();
                 return StatusCode(201, "Lyckades lägga till bild(er)");
             }            
         }
@@ -329,7 +327,7 @@ namespace ExperimentPortalen_API.Controllers
         public ActionResult<List<Category>> PostCategories(Experiment experiment)
         {
             List<Category> categories = new List<Category>();
-            connection.Open();
+
             foreach (Category category in experiment.categories)
             {
                 categories.Add(category);
@@ -356,12 +354,11 @@ namespace ExperimentPortalen_API.Controllers
             }
             if(categories.Count == 0)
             {
-                connection.Close();
+
                 return StatusCode(204, "No categories found");
             }
             else
             {
-                connection.Close();
                 return StatusCode(201, "Lyckades lägga till categori(er)");
             }
         }
