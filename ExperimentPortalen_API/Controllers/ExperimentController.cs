@@ -595,7 +595,7 @@ namespace ExperimentPortalen_API.Controllers
                 connection.Open();
                 MySqlCommand command = connection.CreateCommand();
                 command.CommandText = "DELETE FROM experiments WHERE experiments.id = @exptId";
-                command.Parameters.AddWithValue("@id", exptId);
+                command.Parameters.AddWithValue("@exptId", exptId);
                 command.ExecuteNonQuery();
 
                 connection.Close();
