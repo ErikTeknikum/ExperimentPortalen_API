@@ -9,6 +9,40 @@ namespace ExperimentPortalen_API.Controllers
     {
         MySqlConnection connection = new MySqlConnection("server=localhost;uid=root;pwd=;database=experiment_portalen");
 
+
+        [HttpGet]
+        public ActionResult GetLike(int exptId, int userId)
+        {
+            int like = 0;
+            try
+            {
+                connection.Open();
+                MySqlCommand command = connection.CreateCommand();
+                command.Prepare();
+                command.CommandText = "SELECT COUNT(likes.userId) AS 'like' FROM likes WHERE likes.exptId = @exptId AND likes.userId = @userId";
+                command.Parameters.AddWithValue("@exptId", exptId);
+                command.Parameters.AddWithValue("@userId", userId);
+
+                MySqlDataReader reader = command.ExecuteReader();
+                reader.Read();
+
+                like = reader.GetInt32("like");
+                
+                if (like == 0)
+                {
+                    return StatusCode(204, "No like in database");
+                }
+
+                return StatusCode(200, "Experiment is liked by user");
+            } 
+            catch(Exception exception)
+            {
+                return StatusCode(500, exception);
+            }
+        }
+
+
+
         [HttpPost]
         public ActionResult CreateLike(int exptId, int userId) //FUNGERAR
         {

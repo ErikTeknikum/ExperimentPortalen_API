@@ -31,7 +31,7 @@ namespace ExperimentPortalen_API.Controllers
                 UserBuilder builder = new UserBuilder();
                 builder.Email(email).Name(name).Password(hashedPwd);
                 User userbuild = builder.Build();
-
+                connection.Open();
                 string checkUniqueUser = CheckIfUniqueUserDataExists(userbuild);
                 if (checkUniqueUser != String.Empty)
                 {
@@ -39,7 +39,7 @@ namespace ExperimentPortalen_API.Controllers
                     return StatusCode(500, checkUniqueUser);
                 }
 
-                connection.Open();
+                
                 MySqlCommand command = connection.CreateCommand();
                 command.Prepare();
 
@@ -84,7 +84,7 @@ namespace ExperimentPortalen_API.Controllers
                 MySqlCommand command = connection.CreateCommand();
                 command.Prepare();
 
-                command.CommandText = "DELETE FROM user WHERE user.id = @id";
+                command.CommandText = "DELETE FROM users WHERE users.id = @id";
                 command.Parameters.AddWithValue("@userId", id);
 
                 int rows = command.ExecuteNonQuery();
@@ -106,7 +106,7 @@ namespace ExperimentPortalen_API.Controllers
             {
                 MySqlCommand query = connection.CreateCommand();
                 query.Prepare();
-                query.CommandText = "SELECT * FROM user WHERE email = @userEmail OR name = @userName";
+                query.CommandText = "SELECT * FROM users WHERE email = @userEmail OR name = @userName";
                 query.Parameters.AddWithValue("@userName", user.name);
                 query.Parameters.AddWithValue("@userEmail", user.email);
                 MySqlDataReader data = query.ExecuteReader();
@@ -122,14 +122,27 @@ namespace ExperimentPortalen_API.Controllers
                         checkUniqueUser = "Användarnamn används redan på hemsidan";
                     }
                 }
+                data.Close();
             }
             catch (Exception exception)
             {
                 Console.WriteLine($"UserController.CheckIfUniqueUserDataExists: {exception.Message}");
-                connection.Close();
+                
             }
 
             return checkUniqueUser;
+        }
+
+        [HttpGet("VerifyUserId")]
+        public ActionResult VerifyUserId()
+        {
+            string auth = this.HttpContext.Request.Headers["Authorization"];
+            if (auth == null || !UserController.sessionId.ContainsKey(auth))
+            {
+                return StatusCode(403, "0");
+            }
+            User user = (User)UserController.sessionId[auth];
+            return StatusCode(200, user.id);
         }
 
         [HttpGet("Login")] //ALL FUNCTION
@@ -140,7 +153,7 @@ namespace ExperimentPortalen_API.Controllers
             connection.Open();
             MySqlCommand command = connection.CreateCommand();
             command.Prepare();
-            command.CommandText = "SELECT * FROM user WHERE email = @email";
+            command.CommandText = "SELECT * FROM users WHERE email = @email";
             command.Parameters.AddWithValue("@email", user.email); //Lägg till så name också kan användas?
             MySqlDataReader data = command.ExecuteReader();
             try
@@ -155,6 +168,7 @@ namespace ExperimentPortalen_API.Controllers
                     user.email = data.GetString("email"); //Onödig
                     user.role = data.GetUInt32("role"); //Onödig?
                 }
+                data.Close();
 
                 if (passwordHash != string.Empty && BCrypt.Net.BCrypt.Verify(user.password, passwordHash))
                 {
