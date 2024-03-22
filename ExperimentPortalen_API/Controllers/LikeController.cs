@@ -7,7 +7,13 @@ namespace ExperimentPortalen_API.Controllers
     [Route("[controller]")]
     public class LikeController : Controller
     {
-        MySqlConnection connection = new MySqlConnection("server=localhost;uid=root;pwd=;database=experiment_portalen");
+        MySqlConnection connection;
+
+        public LikeController(IConfiguration config)
+        {
+            string ip = config["ip"];
+            connection = new MySqlConnection(ip);
+        }
 
 
         [HttpGet]
@@ -41,7 +47,36 @@ namespace ExperimentPortalen_API.Controllers
             }
         }
 
+        [HttpGet("Check")]
+        public ActionResult CheckIfLiked(int exptId, int userId)
+        {
+            bool liked = false;
+            try
+            {
+                connection.Open();
+                MySqlCommand command = connection.CreateCommand();
+                command.Prepare();
+                command.CommandText = "SELECT * FROM likes WHERE exptId = @exptId AND userId = @userId";
+                command.Parameters.AddWithValue("@exptId", exptId);
+                command.Parameters.AddWithValue("@userId", userId);
 
+                using (MySqlDataReader reader = command.ExecuteReader())
+                {
+                    if (reader.HasRows)
+                    {
+                        liked = true;
+                    }
+                }
+
+                connection.Close();
+                return StatusCode(200, liked);
+            }
+            catch
+            {
+                connection.Close();
+                return StatusCode(500, liked);
+            }
+        }
 
         [HttpPost]
         public ActionResult CreateLike(int exptId, int userId) //FUNGERAR

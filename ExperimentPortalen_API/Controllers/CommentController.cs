@@ -7,7 +7,13 @@ namespace ExperimentPortalen_API.Controllers
     [Route("[controller]")]
     public class CommentController : Controller
     {
-        MySqlConnection connection = new MySqlConnection("server=localhost;uid=root;pwd=;database=experiment_portalen");
+        MySqlConnection connection;
+
+        public CommentController(IConfiguration config)
+        {
+            string ip = config["ip"];
+            connection = new MySqlConnection(ip);
+        }
 
         [HttpPost]
         public ActionResult CreateComment(Comment comment) //FUNGERAR
@@ -63,8 +69,7 @@ namespace ExperimentPortalen_API.Controllers
                 if(data.GetInt32("bool") == 1)
                 {
                     data.Close();
-                    Console.WriteLine("Rad finns i databas!");
-                    
+                    Console.WriteLine("Rad finns i databas!");                    
                 }
                 else
                 {

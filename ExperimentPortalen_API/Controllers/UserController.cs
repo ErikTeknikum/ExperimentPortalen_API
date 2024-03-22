@@ -17,7 +17,13 @@ namespace ExperimentPortalen_API.Controllers
     [Route("[controller]")]
     public class UserController : Controller
     {
-        MySqlConnection connection = new MySqlConnection("server=localhost;uid=root;pwd=;database=experiment_portalen");
+        MySqlConnection connection;
+
+        public UserController(IConfiguration config)
+        {
+            string ip = config["ip"];
+            connection = new MySqlConnection(ip);
+        }
 
         public static Hashtable sessionId = new Hashtable();
 

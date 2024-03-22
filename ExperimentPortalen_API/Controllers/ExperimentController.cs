@@ -10,7 +10,13 @@ namespace ExperimentPortalen_API.Controllers
     [Route("[controller]")]
     public class ExperimentController : Controller
     {
-        MySqlConnection connection = new MySqlConnection("server=localhost;uid=root;pwd=;database=experiment_portalen");
+        MySqlConnection connection;
+
+        public ExperimentController(IConfiguration config)
+        {
+            string ip = config["ip"];
+            connection = new MySqlConnection(ip);
+        }
 
         [HttpGet]
         public ActionResult<List<Experiment>> GetAllExpts() //GETS ALL EXPERIMENTS
@@ -127,9 +133,11 @@ namespace ExperimentPortalen_API.Controllers
 
                 MySqlCommand command = connection.CreateCommand();
                 command.Prepare();
-                command.CommandText = "UPDATE `experiments` SET `title` = @title, " +
+                
+                  command.CommandText = "UPDATE `experiments` SET `title` = @title, " +
                     "`desc` = @desc, `materials` = @materials, `instructions` = @instructions " +
-                    "WHERE experiments.id = @exptId";
+                    "WHERE id = @exptId";
+                
                 command.Parameters.AddWithValue("@exptId", experiment.id);
                 command.Parameters.AddWithValue("@title", experiment.title);
                 command.Parameters.AddWithValue("@desc", experiment.desc);
@@ -140,7 +148,7 @@ namespace ExperimentPortalen_API.Controllers
                 if (experiment.title == string.Empty || experiment.desc == string.Empty || experiment.materials == string.Empty)
                 {
                     connection.Close();
-                    return StatusCode(204, "Kunde inte ladda upp inlägg, inlägg saknar viktig information");
+                    return StatusCode(204, "Kunde inte redigera inlägg, inlägg saknar viktig information");
                 }
 
                 int rows = command.ExecuteNonQuery();                
@@ -154,7 +162,7 @@ namespace ExperimentPortalen_API.Controllers
                 //deletes current categories in database then posts the new/updated categories
 
                 connection.Close();
-                return StatusCode(201, $"Lyckades ladda upp inlägg med titel: {experiment.title}");
+                return StatusCode(200, $"Lyckades redigera inlägg med nya titeln: {experiment.title}");
 
             }
             catch (Exception exception)
@@ -294,29 +302,32 @@ namespace ExperimentPortalen_API.Controllers
 
                 try
                 {
+                    string url = SaveImg(image);
+
 
                     MySqlCommand command = connection.CreateCommand();
                     command.Prepare();
 
                     command.CommandText = "INSERT INTO imageurls (imageurls.exptId, imageurls.url) " +
                         "SELECT MAX(experiments.id), @url FROM experiments";
-                    command.Parameters.AddWithValue("@url",  image.url);
-
-                    int rows = command.ExecuteNonQuery();
+                    command.Parameters.AddWithValue("@url",  url);
+                    
+                    int rows = command.ExecuteNonQuery();                    
                 }
                 catch (Exception exception)
                 {
-                    connection.Close();
+                    
                     return StatusCode(500, exception.Message);
                 }
             }
             if(images.Count == 0)
             {
-                Console.WriteLine("INGEN BILD HITTADES!! GRR");
-                return StatusCode(204, "No images found");
+                Console.WriteLine("ingen bild i body"); //Kan tas bort
+                return StatusCode(204, "ingen bild i body");
             }
             else
             {
+                
                 return StatusCode(201, "Lyckades lägga till bild(er)");
             }            
         }
@@ -348,7 +359,7 @@ namespace ExperimentPortalen_API.Controllers
                 }
                 catch (Exception exception)
                 {
-                    connection.Close();
+                    
                     return StatusCode(500, exception.Message);
                 }
             }
@@ -465,8 +476,8 @@ namespace ExperimentPortalen_API.Controllers
                 commentCommand.CommandText = "SELECT comments.id, comments.userId, comments.exptId, comments.content FROM comments " +
                     "INNER JOIN experiments ON comments.exptId = experiments.id WHERE comments.exptId = @exptId;"; //gets comments
                 commentCommand.Parameters.AddWithValue("@exptId", experimentId);
-                using (MySqlDataReader commentData = commentCommand.ExecuteReader())
-                {
+                MySqlDataReader commentData = commentCommand.ExecuteReader();
+                
 
                     while (commentData.Read())
                     {
@@ -478,12 +489,12 @@ namespace ExperimentPortalen_API.Controllers
                         commentList.Add(comment);
                     }
                     commentData.Close();
-
+                
                     foreach(Comment comment in commentList)
                     {
                         comment.name = GetUserName(comment.userId);
                     }
-                }
+                
 
                 return commentList;
             }
@@ -565,7 +576,7 @@ namespace ExperimentPortalen_API.Controllers
             try
             {
                 likeCommand.Prepare();
-                likeCommand.CommandText = "SELECT COUNT(userId) AS likeCount FROM Likes WHERE exptId = @exptId";
+                likeCommand.CommandText = "SELECT COUNT(userId) AS likeCount FROM likes WHERE exptId = @exptId";
                 likeCommand.Parameters.AddWithValue("@exptId", experimentId);
 
                 MySqlDataReader likeData = likeCommand.ExecuteReader();
@@ -605,6 +616,49 @@ namespace ExperimentPortalen_API.Controllers
             }
         }
         //Used to delete a single post in database from exptId
+
+
+        private string SaveImg(ImageURL imageUrl)
+        {
+            string url = CreateImgPath();
+
+            byte[] data = Convert.FromBase64String(imageUrl.image);
+
+
+            System.IO.File.WriteAllBytes(url, data);
+
+            int lastSeparatorIndex = url.LastIndexOf('\\');
+
+            // If the separator is found, get the substring starting from the character right after the separator
+            if (lastSeparatorIndex != -1)
+            {
+                url = url.Substring(lastSeparatorIndex + 1);
+            }
+
+            return url;
+        }
+
+        //Generates a random base64 for image name
+        static string GenRandomB64()
+        {
+            // Use a random number generator to generate random bytes
+            byte[] randomBytes = new byte[6];
+            new Random().NextBytes(randomBytes);
+
+            // Convert the random bytes to Base64
+            string randomBase64 = Convert.ToBase64String(randomBytes);
+
+            return randomBase64.Substring(0, 5);
+        }
+
+        private string CreateImgPath()
+        {
+            string imgName = GenRandomB64();
+            const string DIRECTORY = "C:\\Users\\Elev\\Documents\\GitHub\\slutprojekt_frontend\\my-app\\public\\images\\";
+            string url = DIRECTORY + imgName + ".png";
+
+            return url;
+        }
     }
 }
 
